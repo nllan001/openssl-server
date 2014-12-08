@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
 
     unsigned char buf[RAND_NUM];
     bzero(buf, RAND_NUM);
+    RAND_seed(buf, RAND_NUM);
     int randError = RAND_bytes(buf, RAND_NUM);
     if(!randError) {
         printf("Error with generating cryptographic PRN");
