@@ -5,6 +5,8 @@
 #include "openssl/err.h"
 #include "openssl/rand.h"
 
+#define RAND_NUM 1024
+
 int main(int argc, char **argv) {
     if(argc < 5) {
         printf("Not enough arguments.");
@@ -22,4 +24,14 @@ int main(int argc, char **argv) {
     hostName = strcpy(hostName, strchr(hostName, '=') + 1);
     portNum = strcpy(portNum, strchr(portNum, '=') + 1);
     option = strcpy(option, strchr(option, '-') + 2);
+
+    unsigned char buf[RAND_NUM];
+    bzero(buf, RAND_NUM);
+    int randError = RAND_bytes(buf, RAND_NUM);
+    if(!randError) {
+        printf("Error with generating cryptographic PRN");
+        return -1;
+    }
+
+    return 0;
 }
