@@ -4,6 +4,8 @@
 #include "openssl/crypto.h"
 #include "openssl/err.h"
 #include "openssl/rand.h"
+#include "openssl/rsa.h"
+#include "openssl/sha.h"
 
 #define RAND_NUM 1024
 
