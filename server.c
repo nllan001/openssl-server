@@ -26,6 +26,7 @@ RSA *setUpRSA(unsigned char *key, int public) {
     if(!rsa) {
         printf("Error setting up rsa\n");
     }
+    BIO_free(bio);
     return rsa;
 }
 
@@ -72,6 +73,8 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    SSL_CTX_set_cipher_list(serverCTX, "ADH");
+
     /* create new ssl */
     SSL *serverSSL = SSL_new(serverCTX);
     if(!serverSSL) {
@@ -93,10 +96,24 @@ int main(int argc, char **argv) {
 
     /* set the ssl to use the new bios */
     SSL_set_bio(serverSSL, bio, bio);
-    
+
     /* accept connections */
     int accept = SSL_accept(serverSSL);
+    SSL_set_accept_state(serverSSL);
+    int handshake = SSL_do_handshake(serverSSL);
 
+    /* read from client */
+    char options[10];
+    bzero(options, 10);
+    int read = SSL_read(serverSSL, options, 10);
+    if(read < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("%d\n", read);
+
+    /* shutdown ssl and free bio */
+    BIO_free(bio);
+    SSL_shutdown(serverSSL);
     return 0;
 }
 
