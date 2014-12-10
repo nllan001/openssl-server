@@ -88,5 +88,11 @@ int main(int argc, char **argv) {
     /* set up socket */
     SSL_library_init();
     SSL_load_error_strings();
+
+    SSL_CTX *clientCTX = SSL_CTX_new(TLSv1_1_client_method());
+    if(!clientCTX) {
+        printf("Failed to create SSL CTX\n");
+        return -1;
+    }
     return 0;
 }
