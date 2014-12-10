@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
     OpenSSL_add_all_algorithms();
 
     /* set up the context */
-    SSL_CTX *serverCTX = SSL_CTX_new(SSLv2_server_method());
+    SSL_CTX *serverCTX = SSL_CTX_new(TLSv1_1_server_method());
     if(!serverCTX) {
         printf("Failed to create SSL CTX\n");
         return -1;
