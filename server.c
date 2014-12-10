@@ -62,6 +62,8 @@ int main(int argc, char **argv) {
     /* initialize ssl */
     SSL_library_init();
     SSL_load_error_strings();
+    ERR_load_BIO_strings();
+    OpenSSL_add_all_algorithms();
 
     /* set up the context */
     SSL_CTX *serverCTX = SSL_CTX_new(TLSv1_1_server_method());
@@ -77,17 +79,30 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    /* set up the read and write bios */
+    /* set up the read and write bios and blocking status */
     char *hostName = "104.236.53.95";
     BIO *rbio, *wbio;
     rbio = BIO_new_connect(hostName);
     wbio = BIO_new_connect(hostName);
     BIO_set_conn_port(rbio, portNum);
     BIO_set_conn_port(wbio, portNum);
+    BIO_set_nbio(rbio, 0);
+    BIO_set_nbio(wbio, 0);
+
+    /* connect the bios */
+    int rconn, wconn;
+    if((rconn = BIO_do_connect(rbio)) <= 0) {
+        printf("Failed to connect read bio. %d.\n", SSL_get_error(serverSSL, rconn));
+    }
+    if((wconn = BIO_do_connect(wbio)) <= 0) {
+        printf("Failed to connect wead bio. %d.\n", SSL_get_error(serverSSL, wconn));
+    }
 
     /* set the ssl to use the new bios */
     SSL_set_bio(serverSSL, rbio, wbio);
-
+    
+    /* accept connections */
+    int accept = SSL_accept(serverSSL);
 
     return 0;
 }

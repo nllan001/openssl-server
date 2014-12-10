@@ -67,8 +67,6 @@ int main(int argc, char **argv) {
 
     fclose(pubFile);
 
-    printf("%s\n", public);
-
     /* generate prn */
     unsigned char buf[RAND_NUM];
     unsigned char seedBuf[RAND_NUM];
@@ -88,6 +86,8 @@ int main(int argc, char **argv) {
     /* set up socket */
     SSL_library_init();
     SSL_load_error_strings();
+    ERR_load_BIO_strings();
+    OpenSSL_add_all_algorithms();
 
     SSL_CTX *clientCTX = SSL_CTX_new(TLSv1_1_client_method());
     if(!clientCTX) {
@@ -109,8 +109,19 @@ int main(int argc, char **argv) {
     BIO_set_conn_port(rbio, portNum);
     BIO_set_conn_port(wbio, portNum);
 
+    /* connect the bios */
+    if(BIO_do_connect(rbio) <= 0) {
+        printf("Failed to connect read bio.\n");
+    }
+    if(BIO_do_connect(wbio) <= 0) {
+        printf("Failed to connect write bio.\n");
+    }
+
     /* set the ssl to use the new bios */
     SSL_set_bio(clientSSL, rbio, wbio);
+
+    /* start connections */
+    int connect = SSL_connect(clientSSL);
 
     return 0;
 }
