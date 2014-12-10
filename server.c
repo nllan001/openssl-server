@@ -67,13 +67,19 @@ int main(int argc, char **argv) {
     OpenSSL_add_all_algorithms();
 
     /* set up the context */
-    SSL_CTX *serverCTX = SSL_CTX_new(TLSv1_1_server_method());
+    SSL_CTX *serverCTX = SSL_CTX_new(SSLv23_server_method());
     if(!serverCTX) {
         printf("Failed to create SSL CTX\n");
         return -1;
     }
 
-    SSL_CTX_set_cipher_list(serverCTX, "ADH");
+    DH *diffie = DH_new();
+    DH_generate_parameters_ex(diffie, 256, 2, NULL);
+    DH_generate_key(diffie);
+
+    /* set cipher list */
+    SSL_CTX_set_cipher_list(serverCTX, "EXP-ADH-RC4-MD5");
+    SSL_CTX_set_tmp_dh(serverCTX, diffie);
 
     /* create new ssl */
     SSL *serverSSL = SSL_new(serverCTX);
@@ -83,8 +89,9 @@ int main(int argc, char **argv) {
     }
 
     /* set up the read and write bios and blocking status */
-    BIO *bio;
-    bio = BIO_new_accept(portNum);
+    BIO *bio = BIO_new(BIO_s_accept());;
+    BIO_set_accept_port(bio, portNum);
+    //bio = BIO_new_accept(portNum);
 
     /* connect the bios */
     int acc;
@@ -96,20 +103,19 @@ int main(int argc, char **argv) {
 
     /* set the ssl to use the new bios */
     SSL_set_bio(serverSSL, bio, bio);
-
     /* accept connections */
     int accept = SSL_accept(serverSSL);
-    SSL_set_accept_state(serverSSL);
-    int handshake = SSL_do_handshake(serverSSL);
+    //SSL_set_accept_state(serverSSL);
+    //int handshake = SSL_do_handshake(serverSSL);
 
     /* read from client */
-    char options[10];
-    bzero(options, 10);
-    int read = SSL_read(serverSSL, options, 10);
+    char options[100];
+    bzero(options, 100);
+    int read = SSL_read(serverSSL, options, 100);
     if(read < 0) {
         ERR_print_errors_fp(stderr);
     }
-    printf("%d\n", read);
+    printf("%s\n", options);
 
     /* shutdown ssl and free bio */
     BIO_free(bio);

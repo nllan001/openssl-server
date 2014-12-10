@@ -89,11 +89,14 @@ int main(int argc, char **argv) {
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
 
-    SSL_CTX *clientCTX = SSL_CTX_new(TLSv1_1_client_method());
+    SSL_CTX *clientCTX = SSL_CTX_new(SSLv23_client_method());
     if(!clientCTX) {
         printf("Failed to create SSL CTX\n");
         return -1;
     }
+
+    /* set cipher list */
+    SSL_CTX_set_cipher_list(clientCTX, "EXP-ADH-RC4-MD5");
 
     /* create new ssl */
     SSL *clientSSL = SSL_new(clientCTX);
@@ -103,25 +106,32 @@ int main(int argc, char **argv) {
     }
 
     /* set up the read and write bios */
-    BIO *rbio, *wbio;
-    rbio = BIO_new_connect(hostName);
-    wbio = BIO_new_connect(hostName);
-    BIO_set_conn_port(rbio, portNum);
-    BIO_set_conn_port(wbio, portNum);
+    BIO *bio = BIO_new(BIO_s_connect());
+    //bio = BIO_new_connect(hostName);
+    BIO_set_conn_hostname(bio, hostName);
+    BIO_set_conn_port(bio, portNum);
 
     /* connect the bios */
-    if(BIO_do_connect(rbio) <= 0) {
-        printf("Failed to connect read bio.\n");
-    }
-    if(BIO_do_connect(wbio) <= 0) {
-        printf("Failed to connect write bio.\n");
+    if(BIO_do_connect(bio) <= 0) {
+        printf("Failed to connect bio.\n");
     }
 
     /* set the ssl to use the new bios */
-    SSL_set_bio(clientSSL, rbio, wbio);
+    SSL_set_bio(clientSSL, bio, bio);
 
     /* start connections */
     int connect = SSL_connect(clientSSL);
 
+    //SSL_set_connect_state(clientSSL);
+    //int handshake = SSL_do_handshake(clientSSL);
+   
+    /* write to server */
+    int write = SSL_write(clientSSL, option, strlen(option));
+    if(write < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+
+    BIO_free(bio);
+    SSL_shutdown(clientSSL);
     return 0;
 }
