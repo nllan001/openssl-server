@@ -94,5 +94,23 @@ int main(int argc, char **argv) {
         printf("Failed to create SSL CTX\n");
         return -1;
     }
+
+    /* create new ssl */
+    SSL *clientSSL = SSL_new(clientCTX);
+    if(!clientSSL) {
+        printf("Failed to create SSL\n");
+        return -1;
+    }
+
+    /* set up the read and write bios */
+    BIO *rbio, *wbio;
+    rbio = BIO_new_connect(hostName);
+    wbio = BIO_new_connect(hostName);
+    BIO_set_conn_port(rbio, portNum);
+    BIO_set_conn_port(wbio, portNum);
+
+    /* set the ssl to use the new bios */
+    SSL_set_bio(clientSSL, rbio, wbio);
+
     return 0;
 }
