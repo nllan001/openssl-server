@@ -32,56 +32,60 @@ RSA *setUpRSA(unsigned char *key, int public) {
 
 /* sends file to client */
 void send(SSL *serverSSL) {
-		/* reads the file path from the client */
-		int pathLength = 64;
-		char fileName[pathLength];
-		bzero(fileName, pathLength);
-		int read = SSL_read(serverSSL, fileName, pathLength);
-		if(read < 0) {
-				ERR_print_errors_fp(stderr);
-				return;
-		}
+    /* reads the file path from the client */
+    int pathLength = 64;
+    char fileName[pathLength];
+    bzero(fileName, pathLength);
+    int read = SSL_read(serverSSL, fileName, pathLength);
+    if(read < 0) {
+        ERR_print_errors_fp(stderr);
+        return;
+    }
 
-		/* reads the file contents into fileBuf if the file exists */
-		char *fileBuf = 0;
-		long fileLength;
-		FILE *file = fopen(fileName, "rb");
-		if(file) {
-				fseek(file, 0, SEEK_END);
-				fileLength = ftell(file);
-				fseek(file, 0, SEEK_SET);
-				fileBuf = malloc(fileLength);
-				if(fileBuf) {
-						fread(fileBuf, 1, fileLength, file);
-				} else {
-						printf("Error reading file.\n");
-						return;
-				}
-		} else {
-				printf("Error opening file.\n");
-				return;
-		}
-		fileBuf[fileLength] = '\0';
-		printf("%s\n", fileBuf);
+    /* reads the file contents into fileBuf if the file exists */
+    char *fileBuf = 0;
+    long fileLength;
+    FILE *file = fopen(fileName, "rb");
+    if(file) {
+        fseek(file, 0, SEEK_END);
+        fileLength = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        fileBuf = malloc(fileLength);
+        if(fileBuf) {
+            fread(fileBuf, 1, fileLength, file);
+        } else {
+            printf("Error reading file.\n");
+            return;
+        }
+    } else {
+        printf("Error opening file.\n");
+        return;
+    }
+    fileBuf[fileLength] = '\0';
+    printf("%s\n", fileBuf);
+
+    /* send over the fileBuf */
 }
 
 /* receives file from client */
 void receive(SSL *serverSSL) {
-		/* read the file name from the client */
-		int pathLength = 64;
-		char fileName[pathLength];
-		bzero(fileName, pathLength);
-		int read = SSL_read(serverSSL, fileName, pathLength);
-		if(read < 0) {
-				ERR_print_errors_fp(stderr);
-				return;
-		}
+    /* read the file name from the client */
+    int pathLength = 64;
+    char fileName[pathLength];
+    bzero(fileName, pathLength);
+    int read = SSL_read(serverSSL, fileName, pathLength);
+    if(read < 0) {
+        ERR_print_errors_fp(stderr);
+        return;
+    }
 
-		/* create the initial file for writing in a specific directory */
-		char directory[32] = "./serverFiles/";
-		strcat(directory, fileName);
-		printf("%s\n", directory);
-		FILE *file = fopen(directory, "wb");
+    /* create the initial file for writing in a specific directory */
+    char directory[32] = "./serverFiles/";
+    strcat(directory, fileName);
+    printf("%s\n", directory);
+    FILE *file = fopen(directory, "wb");
+
+    /* read in the file contents from the socket */
 }
 
 int main(int argc, char **argv) {
@@ -127,7 +131,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-		/* set up diffie helman parameters */
+    /* set up diffie helman parameters */
     DH *diffie = DH_new();
     DH_generate_parameters_ex(diffie, 256, 2, NULL);
     DH_generate_key(diffie);
@@ -171,9 +175,9 @@ int main(int argc, char **argv) {
     //printf("Encrypted: \n%s\n", encryptedBuf);
 
     /* decrypt the challenge */
-		int dLength = 128;
+    int dLength = 128;
     char decrypted[128];
-		bzero(decrypted, dLength);
+    bzero(decrypted, dLength);
     int pad = RSA_NO_PADDING;
     RSA *privrsa = setUpRSA(private, 0);
     int privDecrypt = RSA_private_decrypt(dLength, encryptedBuf, decrypted, privrsa, pad);
@@ -181,24 +185,24 @@ int main(int argc, char **argv) {
         ERR_print_errors_fp(stderr);
     }
 
-		/* hash the client's message */
-		int hashSize = 20;
-		unsigned char shaBuf[hashSize];
-		bzero(shaBuf, hashSize);
-		unsigned char *hash = SHA1(decrypted, dLength, shaBuf);
-		shaBuf[hashSize] = '\0';
-//		printf("Hash: %s\n", shaBuf);
+    /* hash the client's message */
+    int hashSize = 20;
+    unsigned char shaBuf[hashSize];
+    bzero(shaBuf, hashSize);
+    unsigned char *hash = SHA1(decrypted, dLength, shaBuf);
+    shaBuf[hashSize] = '\0';
+    //		printf("Hash: %s\n", shaBuf);
 
-		/* encrypt the hashed message */
-		unsigned char encrypted[2048] = {};
-		pad = RSA_PKCS1_PADDING;
-		int privEncrypt = RSA_private_encrypt(hashSize, shaBuf, encrypted, privrsa, pad);
-		if(privEncrypt < 0) {
-				ERR_print_errors_fp(stderr);
-		}
-printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
+    /* encrypt the hashed message */
+    unsigned char encrypted[2048] = {};
+    pad = RSA_PKCS1_PADDING;
+    int privEncrypt = RSA_private_encrypt(hashSize, shaBuf, encrypted, privrsa, pad);
+    if(privEncrypt < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
 
-		//printf("encrypted: %s\n", encrypted);
+    //printf("encrypted: %s\n", encrypted);
 
     /* write to client */
     int write = SSL_write(serverSSL, encrypted, 2048);
@@ -206,26 +210,26 @@ printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
         ERR_print_errors_fp(stderr);
     }
 
-		/* receive option flag from client */
-		char options[32];
-		bzero(options, 32);
-		read = SSL_read(serverSSL, options, 32);
-		if(read < 0) {
-				ERR_print_errors_fp(stderr);
-		}
+    /* receive option flag from client */
+    char options[32];
+    bzero(options, 32);
+    read = SSL_read(serverSSL, options, 32);
+    if(read < 0) {
+        ERR_print_errors_fp(stderr);
+    }
 
     /* send and receive check */
     char *s = "send";
     char *r = "receive";
     if(!strcmp(options, s)) {
-				receive(serverSSL);
+        receive(serverSSL);
     } else if(!strcmp(options, r)) {
-				send(serverSSL);
+        send(serverSSL);
     } else {
-				printf("Incorrect option received: %s\n", options);
-				SSL_shutdown(serverSSL);
-				return 0;
-		}
+        printf("Incorrect option received: %s\n", options);
+        SSL_shutdown(serverSSL);
+        return 0;
+    }
 
     /* shutdown ssl and free bio */
     SSL_shutdown(serverSSL);

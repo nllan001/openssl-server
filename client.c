@@ -29,52 +29,56 @@ RSA *setUpRSA(unsigned char *key, int public) {
 
 /* sends file to server */
 void send(SSL *clientSSL, unsigned char *fileName) {
-		/* get the contents of the file */
-		char *fileBuf = 0;
-		long fileLength;
-		FILE *file = fopen(fileName, "rb");
-		if(file) {
-				fseek(file, 0, SEEK_END);
-				fileLength = ftell(file);
-				fseek(file, 0, SEEK_SET);
-				fileBuf = malloc(fileLength);
-				if(fileBuf) {
-						fread(fileBuf, 1, fileLength, file);
-				} else {
-						printf("Error reading file.\n");
-						return;
-				}
-		} else {
-				printf("Error opening file.\n");
-				return;
-		}
-		fileBuf[fileLength] = '\0';
-		printf("%s\n", fileBuf);
+    /* get the contents of the file */
+    char *fileBuf = 0;
+    long fileLength;
+    FILE *file = fopen(fileName, "rb");
+    if(file) {
+        fseek(file, 0, SEEK_END);
+        fileLength = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        fileBuf = malloc(fileLength);
+        if(fileBuf) {
+            fread(fileBuf, 1, fileLength, file);
+        } else {
+            printf("Error reading file.\n");
+            return;
+        }
+    } else {
+        printf("Error opening file.\n");
+        return;
+    }
+    fileBuf[fileLength] = '\0';
+    printf("%s\n", fileBuf);
 
-		/* clean the file name of directory paths and write it to server */
-		fileName = strrchr(fileName, '/') + 1;
-		int write = SSL_write(clientSSL, fileName, strlen(fileName));
-		if(write < 0) {
-				ERR_print_errors_fp(stderr);
-				return;
-		}
+    /* clean the file name of directory paths and write it to server */
+    fileName = strrchr(fileName, '/') + 1;
+    int write = SSL_write(clientSSL, fileName, strlen(fileName));
+    if(write < 0) {
+        ERR_print_errors_fp(stderr);
+        return;
+    }
+
+    /* send over the fileBuf */
 }
 
 /* receives file from server */
 void receive(SSL *clientSSL, unsigned char *fileName) {
-		/* write the file name to the server */
-		int write = SSL_write(clientSSL, fileName, strlen(fileName));
-		if(write < 0) {
-				ERR_print_errors_fp(stderr);
-				return;
-		}
+    /* write the file name to the server */
+    int write = SSL_write(clientSSL, fileName, strlen(fileName));
+    if(write < 0) {
+        ERR_print_errors_fp(stderr);
+        return;
+    }
 
-		/* create the initial file for writing in a specific directory */
-		char directory[32] = "./clientFiles/";
-		fileName = strrchr(fileName, '/') + 1;
-		strcat(directory, fileName);
-		printf("%s\n", directory);
-		FILE *file = fopen(directory, "wb");
+    /* create the initial file for writing in a specific directory */
+    char directory[32] = "./clientFiles/";
+    fileName = strrchr(fileName, '/') + 1;
+    strcat(directory, fileName);
+    printf("%s\n", directory);
+    FILE *file = fopen(directory, "wb");
+
+    /* read in the file contents from the socket */
 }
 
 int main(int argc, char **argv) {
@@ -115,16 +119,16 @@ int main(int argc, char **argv) {
     unsigned char seedBuf[randNum];
     RAND_seed(seedBuf, randNum);
     int randError = RAND_bytes(randBuf, randNum);
-		randBuf[randNum] = '\0';
+    randBuf[randNum] = '\0';
     if(!randError) {
         printf("Error with generating cryptographic PRN\n");
         return -1;
     }
 
-		/* hash the prn to later compare against the server's response */
-		unsigned char shaBuf[20];
-		bzero(shaBuf, 20);
-		unsigned char *hash = SHA1(randBuf, randNum, shaBuf);
+    /* hash the prn to later compare against the server's response */
+    unsigned char shaBuf[20];
+    bzero(shaBuf, 20);
+    unsigned char *hash = SHA1(randBuf, randNum, shaBuf);
 
     /* encrypt challenge with server's public key */
     unsigned char encrypted[2048] = {};
@@ -133,8 +137,8 @@ int main(int argc, char **argv) {
     int pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
     while(pubEncrypt < 0) {
         //ERR_print_errors_fp(stderr);
-				bzero(encrypted, 2048);
-    		pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
+        bzero(encrypted, 2048);
+        pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
     }
 
     /* initialize ssl */
@@ -143,7 +147,7 @@ int main(int argc, char **argv) {
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
 
-		/* set up context */
+    /* set up context */
     SSL_CTX *clientCTX = SSL_CTX_new(SSLv23_client_method());
     if(!clientCTX) {
         printf("Failed to create SSL CTX\n");
@@ -182,47 +186,47 @@ int main(int argc, char **argv) {
         ERR_print_errors_fp(stderr);
     }
 
-		/* read encrypted hashed response from server */
-		unsigned char encryptedHash[2048];
-		int read = SSL_read(clientSSL, encryptedHash, 2048);
-		if(read < 0) {
+    /* read encrypted hashed response from server */
+    unsigned char encryptedHash[2048];
+    int read = SSL_read(clientSSL, encryptedHash, 2048);
+    if(read < 0) {
         ERR_print_errors_fp(stderr);
-		}
+    }
 
-		/* decrypt response */
-		pad = RSA_PKCS1_PADDING;
-		unsigned char decryptedHash[20];
-//printf("length: %d, size: %d\n", strlen(encryptedHash), RSA_size(pubrsa));
-		int pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
-		while(pubDecrypt < 0) {
-				//ERR_print_errors_fp(stderr);
-				pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
-		}
+    /* decrypt response */
+    pad = RSA_PKCS1_PADDING;
+    unsigned char decryptedHash[20];
+    //printf("length: %d, size: %d\n", strlen(encryptedHash), RSA_size(pubrsa));
+    int pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
+    while(pubDecrypt < 0) {
+        //ERR_print_errors_fp(stderr);
+        pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
+    }
 
-		/* authenticate the server's response */
-		decryptedHash[20] = '\0';
-		if(!strcmp(decryptedHash, hash)) {
-				printf("Successful Authentication.\n");
-		} else {
-				printf("Authentication Failed.\n");
-				SSL_shutdown(clientSSL);
-				return 0;
-		}
+    /* authenticate the server's response */
+    decryptedHash[20] = '\0';
+    if(!strcmp(decryptedHash, hash)) {
+        printf("Successful Authentication.\n");
+    } else {
+        printf("Authentication Failed.\n");
+        SSL_shutdown(clientSSL);
+        return 0;
+    }
 
-		/* send option flag */
-		write = SSL_write(clientSSL, option, strlen(option));
-		if(write < 0) {
-				ERR_print_errors_fp(stderr);
-		}
+    /* send option flag */
+    write = SSL_write(clientSSL, option, strlen(option));
+    if(write < 0) {
+        ERR_print_errors_fp(stderr);
+    }
 
-		/* check if sending or receiving */
-		if(!strcmp(option, "send")) {
-				send(clientSSL, fileName);
-		} else if(!strcmp(option, "receive")) {
-				receive(clientSSL, fileName);
-		} else {
-				printf("No valid option entered.\n");
-		}
+    /* check if sending or receiving */
+    if(!strcmp(option, "send")) {
+        send(clientSSL, fileName);
+    } else if(!strcmp(option, "receive")) {
+        receive(clientSSL, fileName);
+    } else {
+        printf("No valid option entered.\n");
+    }
 
     SSL_shutdown(clientSSL);
     return 0;
