@@ -87,8 +87,10 @@ int main(int argc, char **argv) {
     int pad = RSA_NO_PADDING;
     RSA *pubrsa = setUpRSA(public, 1);
     int pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
-    if(pubEncrypt < 0) {
-        ERR_print_errors_fp(stderr);
+    while(pubEncrypt < 0) {
+        //ERR_print_errors_fp(stderr);
+				bzero(encrypted, 2048);
+    		pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
     }
 
     /* set up socket */
@@ -141,17 +143,16 @@ int main(int argc, char **argv) {
 		if(read < 0) {
         ERR_print_errors_fp(stderr);
 		}
-		printf("Encrypted: %s\n", encryptedHash);
 
 		/* decrypt response */
 		pad = RSA_PKCS1_PADDING;
 		unsigned char decryptedHash[20];
+printf("length: %d, size: %d\n", strlen(encryptedHash), RSA_size(pubrsa));
 		int pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
-		if(pubDecrypt < 0) {
-				ERR_print_errors_fp(stderr);
+		while(pubDecrypt < 0) {
+				//ERR_print_errors_fp(stderr);
+				pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
 		}
-
-//		printf("decrypted hash: %s\n", decryptedHash);
 
 		decryptedHash[20] = '\0';
 		if(!strcmp(decryptedHash, hash)) {

@@ -142,8 +142,9 @@ int main(int argc, char **argv) {
 		if(privEncrypt < 0) {
 				ERR_print_errors_fp(stderr);
 		}
+printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
 
-		printf("encrypted: %s\n", encrypted);
+		//printf("encrypted: %s\n", encrypted);
 
     /* write to client */
     int write = SSL_write(serverSSL, encrypted, 2048);
