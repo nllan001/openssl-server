@@ -27,12 +27,47 @@ RSA *setUpRSA(unsigned char *key, int public) {
     return rsa;
 }
 
-void send(SSL *clientSSL, unsigned char *file) {
+void send(SSL *clientSSL, unsigned char *fileName) {
+		char *fileBuf = 0;
+		long fileLength;
+		FILE *file = fopen(fileName, "rb");
+		if(file) {
+				fseek(file, 0, SEEK_END);
+				fileLength = ftell(file);
+				fseek(file, 0, SEEK_SET);
+				fileBuf = malloc(fileLength);
+				if(fileBuf) {
+						fread(fileBuf, 1, fileLength, file);
+				} else {
+						printf("Error reading file.\n");
+						return;
+				}
+		} else {
+				printf("Error opening file.\n");
+				return;
+		}
+		fileBuf[fileLength] = '\0';
+		printf("%s\n", fileBuf);
 
+		fileName = strrchr(fileName, '/') + 1;
+		int write = SSL_write(clientSSL, fileName, strlen(fileName));
+		if(write < 0) {
+				ERR_print_errors_fp(stderr);
+				return;
+		}
 }
 
-void receive(SSL *clientSSL, unsigned char *file) {
+void receive(SSL *clientSSL, unsigned char *fileName) {
+		int write = SSL_write(clientSSL, fileName, strlen(fileName));
+		if(write < 0) {
+				ERR_print_errors_fp(stderr);
+				return;
+		}
 
+		char directory[32] = "./clientFiles/";
+		strcat(directory, fileName);
+		printf("%s\n", directory);
+		FILE *file = fopen(directory, "wb");
 }
 
 int main(int argc, char **argv) {

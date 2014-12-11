@@ -31,11 +31,51 @@ RSA *setUpRSA(unsigned char *key, int public) {
 }
 
 void send(SSL *serverSSL) {
-		
+		int pathLength = 64;
+		char fileName[pathLength];
+		bzero(fileName, pathLength);
+		int read = SSL_read(serverSSL, fileName, pathLength);
+		if(read < 0) {
+				ERR_print_errors_fp(stderr);
+				return;
+		}
+
+		char *fileBuf = 0;
+		long fileLength;
+		FILE *file = fopen(fileName, "rb");
+		if(file) {
+				fseek(file, 0, SEEK_END);
+				fileLength = ftell(file);
+				fseek(file, 0, SEEK_SET);
+				fileBuf = malloc(fileLength);
+				if(fileBuf) {
+						fread(fileBuf, 1, fileLength, file);
+				} else {
+						printf("Error reading file.\n");
+						return;
+				}
+		} else {
+				printf("Error opening file.\n");
+				return;
+		}
+		fileBuf[fileLength] = '\0';
+		printf("%s\n", fileBuf);
 }
 
 void receive(SSL *serverSSL) {
+		int pathLength = 64;
+		char fileName[pathLength];
+		bzero(fileName, pathLength);
+		int read = SSL_read(serverSSL, fileName, pathLength);
+		if(read < 0) {
+				ERR_print_errors_fp(stderr);
+				return;
+		}
 
+		char directory[32] = "./serverFiles/";
+		strcat(directory, fileName);
+		printf("%s\n", directory);
+		FILE *file = fopen(directory, "wb");
 }
 
 int main(int argc, char **argv) {
