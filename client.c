@@ -53,14 +53,11 @@ int main(int argc, char **argv) {
     char *mode = "rb";
 
     pubFile = fopen("public.pem", mode);
-
     fseek(pubFile, 0L, SEEK_END);
     size = ftell(pubFile);
     rewind(pubFile);
-
     public = calloc(1, size + 1);
     fread(public, size, 1, pubFile);
-
     fclose(pubFile);
 
     /* generate prn */
@@ -80,7 +77,6 @@ int main(int argc, char **argv) {
 		unsigned char shaBuf[20];
 		bzero(shaBuf, 20);
 		unsigned char *hash = SHA1(randBuf, randNum, shaBuf);
-//		printf("Hash: %s\n", shaBuf);
 
     /* encrypt challenge with server's public key */
     unsigned char encrypted[2048] = {};
@@ -93,12 +89,13 @@ int main(int argc, char **argv) {
     		pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
     }
 
-    /* set up socket */
+    /* initialize ssl */
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
 
+		/* set up context */
     SSL_CTX *clientCTX = SSL_CTX_new(SSLv23_client_method());
     if(!clientCTX) {
         printf("Failed to create SSL CTX\n");
@@ -147,18 +144,27 @@ int main(int argc, char **argv) {
 		/* decrypt response */
 		pad = RSA_PKCS1_PADDING;
 		unsigned char decryptedHash[20];
-printf("length: %d, size: %d\n", strlen(encryptedHash), RSA_size(pubrsa));
+//printf("length: %d, size: %d\n", strlen(encryptedHash), RSA_size(pubrsa));
 		int pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
 		while(pubDecrypt < 0) {
 				//ERR_print_errors_fp(stderr);
 				pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
 		}
 
+		/* authenticate the server's response */
 		decryptedHash[20] = '\0';
 		if(!strcmp(decryptedHash, hash)) {
-			printf("Success!\n");
+				printf("Successful Authentication.\n");
 		} else {
-			printf("Fail...\n");
+				printf("Authentication Failed.\n");
+				SSL_shutdown(clientSSL);
+				return 0;
+		}
+
+		/* send option flag */
+		write = SSL_write(clientSSL, option, strlen(option));
+		if(write < 0) {
+				ERR_print_errors_fp(stderr);
 		}
 
     SSL_shutdown(clientSSL);

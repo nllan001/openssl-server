@@ -152,16 +152,26 @@ printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
         ERR_print_errors_fp(stderr);
     }
 
+		/* receive option flag from client */
+		char options[32];
+		bzero(options, 32);
+		read = SSL_read(serverSSL, options, 32);
+		if(read < 0) {
+				ERR_print_errors_fp(stderr);
+		}
+
     /* send and receive check */
-    /*
     char *s = "send";
     char *r = "receive";
     if(!strcmp(options, s)) {
         printf("I am receiving.\n");
     } else if(!strcmp(options, r)) {
         printf("I am sending.\n");
-    }
-    */
+    } else {
+				printf("Incorrect option received: %s\n", options);
+				SSL_shutdown(serverSSL);
+				return 0;
+		}
 
     /* shutdown ssl and free bio */
     SSL_shutdown(serverSSL);
