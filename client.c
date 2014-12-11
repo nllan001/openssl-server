@@ -27,7 +27,9 @@ RSA *setUpRSA(unsigned char *key, int public) {
     return rsa;
 }
 
+/* sends file to server */
 void send(SSL *clientSSL, unsigned char *fileName) {
+		/* get the contents of the file */
 		char *fileBuf = 0;
 		long fileLength;
 		FILE *file = fopen(fileName, "rb");
@@ -49,6 +51,7 @@ void send(SSL *clientSSL, unsigned char *fileName) {
 		fileBuf[fileLength] = '\0';
 		printf("%s\n", fileBuf);
 
+		/* clean the file name of directory paths and write it to server */
 		fileName = strrchr(fileName, '/') + 1;
 		int write = SSL_write(clientSSL, fileName, strlen(fileName));
 		if(write < 0) {
@@ -57,13 +60,16 @@ void send(SSL *clientSSL, unsigned char *fileName) {
 		}
 }
 
+/* receives file from server */
 void receive(SSL *clientSSL, unsigned char *fileName) {
+		/* write the file name to the server */
 		int write = SSL_write(clientSSL, fileName, strlen(fileName));
 		if(write < 0) {
 				ERR_print_errors_fp(stderr);
 				return;
 		}
 
+		/* create the initial file for writing in a specific directory */
 		char directory[32] = "./clientFiles/";
 		fileName = strrchr(fileName, '/') + 1;
 		strcat(directory, fileName);

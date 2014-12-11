@@ -30,7 +30,9 @@ RSA *setUpRSA(unsigned char *key, int public) {
     return rsa;
 }
 
+/* sends file to client */
 void send(SSL *serverSSL) {
+		/* reads the file path from the client */
 		int pathLength = 64;
 		char fileName[pathLength];
 		bzero(fileName, pathLength);
@@ -40,6 +42,7 @@ void send(SSL *serverSSL) {
 				return;
 		}
 
+		/* reads the file contents into fileBuf if the file exists */
 		char *fileBuf = 0;
 		long fileLength;
 		FILE *file = fopen(fileName, "rb");
@@ -62,7 +65,9 @@ void send(SSL *serverSSL) {
 		printf("%s\n", fileBuf);
 }
 
+/* receives file from client */
 void receive(SSL *serverSSL) {
+		/* read the file name from the client */
 		int pathLength = 64;
 		char fileName[pathLength];
 		bzero(fileName, pathLength);
@@ -72,6 +77,7 @@ void receive(SSL *serverSSL) {
 				return;
 		}
 
+		/* create the initial file for writing in a specific directory */
 		char directory[32] = "./serverFiles/";
 		strcat(directory, fileName);
 		printf("%s\n", directory);
