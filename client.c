@@ -65,6 +65,7 @@ void receive(SSL *clientSSL, unsigned char *fileName) {
 		}
 
 		char directory[32] = "./clientFiles/";
+		fileName = strrchr(fileName, '/') + 1;
 		strcat(directory, fileName);
 		printf("%s\n", directory);
 		FILE *file = fopen(directory, "wb");
