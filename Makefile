@@ -1,16 +1,17 @@
+PORT=20194
 all: client server
 
 runc: client
-	./client --serverAddress=104.236.53.95 --port=20193 --send ./file
+	./client --serverAddress=localhost --port=$(PORT) --receive ./file
 
 runs: server
-	./server --port=20193
+	./server --port=$(PORT)
 
 client: client.c
-	gcc-4.9 client.c -o client -L./openssl -lssl -lcrypto -ldl
+	gcc client.c -o client -lssl -lcrypto -ldl
 
 server: server.c
-	gcc-4.9 server.c -o server -L./openssl -lssl -lcrypto -ldl
+	gcc server.c -o server -lssl -lcrypto -ldl
 
 clean:
 	rm server client
