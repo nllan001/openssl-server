@@ -1,8 +1,9 @@
-PORT=20194
+PORT = 20194
+HOST = localhost
 all: client server
 
 runc: client
-	./client --serverAddress=localhost --port=$(PORT) --receive ./file
+	./client --serverAddress=$(HOST) --port=$(PORT) --send ./send.txt
 
 runs: server
 	./server --port=$(PORT)
