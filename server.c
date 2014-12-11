@@ -86,6 +86,19 @@ void receive(SSL *serverSSL) {
     FILE *file = fopen(directory, "wb");
 
     /* read in the file contents from the socket */
+    int chunkSize = 256, limit = 4096;
+    char chunk[chunkSize];
+    char content[limit];
+    int fileRead = SSL_read(serverSSL, chunk, chunkSize);
+    strcat(content, chunk);
+    limit -= chunkSize;
+    while(fileRead > 0 && limit >= 0) {
+        fileRead = SSL_read(serverSSL, content, chunkSize);
+        strcat(content, chunk);
+        limit -= chunkSize;
+    }
+    content[fileRead] = '\0';
+    printf("%s\n", content);
 }
 
 int main(int argc, char **argv) {

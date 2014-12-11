@@ -60,6 +60,13 @@ void send(SSL *clientSSL, unsigned char *fileName) {
     }
 
     /* send over the fileBuf */
+    int chunkSize = 256;
+    int fileWrite = SSL_write(clientSSL, fileBuf, chunkSize);
+    fileBuf += strlen(fileBuf) > chunkSize ? chunkSize : strlen(fileBuf);
+    while(fileWrite > 0) {
+        fileWrite = SSL_write(clientSSL, fileBuf, chunkSize);
+        fileBuf += strlen(fileBuf) > chunkSize ? chunkSize : strlen(fileBuf);
+    }
 }
 
 /* receives file from server */
