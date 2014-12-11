@@ -30,6 +30,14 @@ RSA *setUpRSA(unsigned char *key, int public) {
     return rsa;
 }
 
+void send(SSL *serverSSL) {
+		
+}
+
+void receive(SSL *serverSSL) {
+
+}
+
 int main(int argc, char **argv) {
     if(argc < 2) {
         printf("Not enough arguments.");
@@ -164,9 +172,9 @@ printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
     char *s = "send";
     char *r = "receive";
     if(!strcmp(options, s)) {
-        printf("I am receiving.\n");
+				receive(serverSSL);
     } else if(!strcmp(options, r)) {
-        printf("I am sending.\n");
+				send(serverSSL);
     } else {
 				printf("Incorrect option received: %s\n", options);
 				SSL_shutdown(serverSSL);

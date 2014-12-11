@@ -27,7 +27,13 @@ RSA *setUpRSA(unsigned char *key, int public) {
     return rsa;
 }
 
+void send(SSL *clientSSL, unsigned char *file) {
 
+}
+
+void receive(SSL *clientSSL, unsigned char *file) {
+
+}
 
 int main(int argc, char **argv) {
     if(argc < 5) {
@@ -165,6 +171,15 @@ int main(int argc, char **argv) {
 		write = SSL_write(clientSSL, option, strlen(option));
 		if(write < 0) {
 				ERR_print_errors_fp(stderr);
+		}
+
+		/* check if sending or receiving */
+		if(!strcmp(option, "send")) {
+				send(clientSSL, fileName);
+		} else if(!strcmp(option, "receive")) {
+				receive(clientSSL, fileName);
+		} else {
+				printf("No valid option entered.\n");
 		}
 
     SSL_shutdown(clientSSL);
