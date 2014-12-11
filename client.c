@@ -65,16 +65,23 @@ int main(int argc, char **argv) {
 
     /* generate prn */
     int randNum = 128;
-    unsigned char randBuf[randNum];
+    char randBuf[128];
     //char randBuf[128] = "testing the encryption";
-    //unsigned char seedBuf[randNum];
     bzero(randBuf, randNum);
-    //RAND_seed(seedBuf, randNum);
+    unsigned char seedBuf[randNum];
+    RAND_seed(seedBuf, randNum);
     int randError = RAND_bytes(randBuf, randNum);
     if(!randError) {
         printf("Error with generating cryptographic PRN\n");
         return -1;
     }
+
+		//printf("plaintext: %s\n", randBuf);
+		//printf("length: %d\n", randNum);
+		unsigned char shaBuf[20];
+		bzero(shaBuf, 20);
+		unsigned char *hash = SHA1(randBuf, randNum, shaBuf);
+		printf("Hash: %s\n", shaBuf);
 
     /* encrypt challenge with server's public key */
     unsigned char encrypted[2048] = {};
@@ -84,8 +91,11 @@ int main(int argc, char **argv) {
     if(pubEncrypt < 0) {
         ERR_print_errors_fp(stderr);
     }
+		printf("num encrypted: %d\n", pubEncrypt);
+/*
     printf("Random Number: \n%s\n", randBuf);
     printf("Encrypted: \n%s\n", encrypted);
+*/
 
     /* set up socket */
     SSL_library_init();
@@ -93,7 +103,7 @@ int main(int argc, char **argv) {
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
 
-    SSL_CTX *clientCTX = SSL_CTX_new(TLSv1_1_client_method());
+    SSL_CTX *clientCTX = SSL_CTX_new(SSLv23_client_method());
     if(!clientCTX) {
         printf("Failed to create SSL CTX\n");
         return -1;

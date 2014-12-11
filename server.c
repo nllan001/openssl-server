@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     OpenSSL_add_all_algorithms();
 
     /* set up the context */
-    SSL_CTX *serverCTX = SSL_CTX_new(TLSv1_1_server_method());
+    SSL_CTX *serverCTX = SSL_CTX_new(SSLv23_server_method());
     if(!serverCTX) {
         printf("Failed to create SSL CTX\n");
         return -1;
@@ -106,24 +106,34 @@ int main(int argc, char **argv) {
     int accept = SSL_accept(serverSSL);
 
     /* read encrypted challenge from client */
-    int randNum = 4098;
+    int randNum = 2048;
     char encryptedBuf[randNum];
     bzero(encryptedBuf, randNum);
     int read = SSL_read(serverSSL, encryptedBuf, randNum);
     if(read < 0) {
         ERR_print_errors_fp(stderr);
     }
-    printf("Encrypted: \n%s\n", encryptedBuf);
+    //printf("Encrypted: \n%s\n", encryptedBuf);
 
     /* decrypt the challenge */
-    unsigned char decrypted[2048] = {};
+		int dLength = 128;
+    char decrypted[128];
+		bzero(decrypted, dLength);
     int pad = RSA_NO_PADDING;
     RSA *privrsa = setUpRSA(private, 0);
-    int privDecrypt = RSA_private_decrypt(strlen(encryptedBuf), encryptedBuf, decrypted, privrsa, pad);
+    int privDecrypt = RSA_private_decrypt(dLength, encryptedBuf, decrypted, privrsa, pad);
     if(privDecrypt < 0) {
         ERR_print_errors_fp(stderr);
     }
-    printf("Decrypted: \n%s\n", decrypted);
+
+		//printf("plaintext: %s\n", decrypted);
+		//printf("length: %d\n", dLength);
+		unsigned char shaBuf[20];
+		bzero(shaBuf, 20);
+		unsigned char *hash = SHA1(decrypted, dLength, shaBuf);
+		shaBuf[20] = '\0';
+		printf("Hash: %s\n", shaBuf);
+    //printf("Decrypted: \n%s\n", decrypted);
 
     /* read from client */
     /*
