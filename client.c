@@ -66,22 +66,21 @@ int main(int argc, char **argv) {
     /* generate prn */
     int randNum = 128;
     char randBuf[128];
-    //char randBuf[128] = "testing the encryption";
     bzero(randBuf, randNum);
     unsigned char seedBuf[randNum];
     RAND_seed(seedBuf, randNum);
     int randError = RAND_bytes(randBuf, randNum);
+		randBuf[randNum] = '\0';
     if(!randError) {
         printf("Error with generating cryptographic PRN\n");
         return -1;
     }
 
-		//printf("plaintext: %s\n", randBuf);
-		//printf("length: %d\n", randNum);
+		/* hash the prn to later compare against the server's response */
 		unsigned char shaBuf[20];
 		bzero(shaBuf, 20);
 		unsigned char *hash = SHA1(randBuf, randNum, shaBuf);
-		printf("Hash: %s\n", shaBuf);
+//		printf("Hash: %s\n", shaBuf);
 
     /* encrypt challenge with server's public key */
     unsigned char encrypted[2048] = {};
@@ -91,11 +90,6 @@ int main(int argc, char **argv) {
     if(pubEncrypt < 0) {
         ERR_print_errors_fp(stderr);
     }
-		printf("num encrypted: %d\n", pubEncrypt);
-/*
-    printf("Random Number: \n%s\n", randBuf);
-    printf("Encrypted: \n%s\n", encrypted);
-*/
 
     /* set up socket */
     SSL_library_init();
@@ -140,6 +134,31 @@ int main(int argc, char **argv) {
     if(write < 0) {
         ERR_print_errors_fp(stderr);
     }
+
+		/* read encrypted hashed response from server */
+		unsigned char encryptedHash[2048];
+		int read = SSL_read(clientSSL, encryptedHash, 2048);
+		if(read < 0) {
+        ERR_print_errors_fp(stderr);
+		}
+		printf("Encrypted: %s\n", encryptedHash);
+
+		/* decrypt response */
+		pad = RSA_PKCS1_PADDING;
+		unsigned char decryptedHash[20];
+		int pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
+		if(pubDecrypt < 0) {
+				ERR_print_errors_fp(stderr);
+		}
+
+//		printf("decrypted hash: %s\n", decryptedHash);
+
+		decryptedHash[20] = '\0';
+		if(!strcmp(decryptedHash, hash)) {
+			printf("Success!\n");
+		} else {
+			printf("Fail...\n");
+		}
 
     SSL_shutdown(clientSSL);
     return 0;

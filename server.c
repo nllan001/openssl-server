@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+		/* set up diffie helman parameters */
     DH *diffie = DH_new();
     DH_generate_parameters_ex(diffie, 256, 2, NULL);
     DH_generate_key(diffie);
@@ -126,25 +127,29 @@ int main(int argc, char **argv) {
         ERR_print_errors_fp(stderr);
     }
 
-		//printf("plaintext: %s\n", decrypted);
-		//printf("length: %d\n", dLength);
-		unsigned char shaBuf[20];
-		bzero(shaBuf, 20);
+		/* hash the client's message */
+		int hashSize = 20;
+		unsigned char shaBuf[hashSize];
+		bzero(shaBuf, hashSize);
 		unsigned char *hash = SHA1(decrypted, dLength, shaBuf);
-		shaBuf[20] = '\0';
-		printf("Hash: %s\n", shaBuf);
-    //printf("Decrypted: \n%s\n", decrypted);
+		shaBuf[hashSize] = '\0';
+//		printf("Hash: %s\n", shaBuf);
 
-    /* read from client */
-    /*
-    char options[100];
-    bzero(options, 100);
-    int read = SSL_read(serverSSL, options, 100);
-    if(read < 0) {
+		/* encrypt the hashed message */
+		unsigned char encrypted[2048] = {};
+		pad = RSA_PKCS1_PADDING;
+		int privEncrypt = RSA_private_encrypt(hashSize, shaBuf, encrypted, privrsa, pad);
+		if(privEncrypt < 0) {
+				ERR_print_errors_fp(stderr);
+		}
+
+		printf("encrypted: %s\n", encrypted);
+
+    /* write to client */
+    int write = SSL_write(serverSSL, encrypted, 2048);
+    if(write < 0) {
         ERR_print_errors_fp(stderr);
     }
-    printf("%s\n", options);
-    */
 
     /* send and receive check */
     /*
