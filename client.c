@@ -9,8 +9,6 @@
 #include "openssl/bio.h"
 #include "openssl/pem.h"
 
-#define RAND_NUM 1024
-
 RSA *setUpRSA(unsigned char *key, int public) {
     RSA *rsa = NULL;
     BIO *bio;
@@ -44,7 +42,6 @@ int main(int argc, char **argv) {
     char *portNum = argv[2];
     char *option = argv[3] + 2;
     char *fileName = argv[4];
-    int pad = RSA_PKCS1_PADDING;
 
     hostName = strcpy(hostName, strchr(hostName, '=') + 1);
     portNum = strcpy(portNum, strchr(portNum, '=') + 1);
@@ -67,20 +64,28 @@ int main(int argc, char **argv) {
     fclose(pubFile);
 
     /* generate prn */
-    unsigned char buf[RAND_NUM];
-    unsigned char seedBuf[RAND_NUM];
-    bzero(buf, RAND_NUM);
-    RAND_seed(seedBuf, RAND_NUM);
-    int randError = RAND_bytes(buf, RAND_NUM);
+    int randNum = 128;
+    unsigned char randBuf[randNum];
+    //char randBuf[128] = "testing the encryption";
+    //unsigned char seedBuf[randNum];
+    bzero(randBuf, randNum);
+    //RAND_seed(seedBuf, randNum);
+    int randError = RAND_bytes(randBuf, randNum);
     if(!randError) {
         printf("Error with generating cryptographic PRN\n");
         return -1;
     }
 
     /* encrypt challenge with server's public key */
-    unsigned char encrypted[4096] = {};
+    unsigned char encrypted[2048] = {};
+    int pad = RSA_NO_PADDING;
     RSA *pubrsa = setUpRSA(public, 1);
-    int pubEncrypt = RSA_public_encrypt(strlen(buf), buf, encrypted, pubrsa, pad);
+    int pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
+    if(pubEncrypt < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("Random Number: \n%s\n", randBuf);
+    printf("Encrypted: \n%s\n", encrypted);
 
     /* set up socket */
     SSL_library_init();
@@ -121,27 +126,10 @@ int main(int argc, char **argv) {
     int connect = SSL_connect(clientSSL);
 
     /* write to server */
-    int write = SSL_write(clientSSL, option, strlen(option));
+    int write = SSL_write(clientSSL, encrypted, randNum);
     if(write < 0) {
         ERR_print_errors_fp(stderr);
     }
-    printf("%s\n", option);
-
-    /* write to server */
-    write = SSL_write(clientSSL, option, strlen(option));
-    if(write < 0) {
-        ERR_print_errors_fp(stderr);
-    }
-    printf("%s\n", option);
-
-    /* read from server */
-    char buf2[100];
-    bzero(buf2, 100);
-    int read = SSL_read(clientSSL, buf2, 100);
-    if(read < 0) {
-        ERR_print_errors_fp(stderr);
-    }
-    printf("%s\n", buf2);
 
     SSL_shutdown(clientSSL);
     return 0;

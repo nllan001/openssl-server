@@ -105,7 +105,28 @@ int main(int argc, char **argv) {
     /* accept connections */
     int accept = SSL_accept(serverSSL);
 
+    /* read encrypted challenge from client */
+    int randNum = 4098;
+    char encryptedBuf[randNum];
+    bzero(encryptedBuf, randNum);
+    int read = SSL_read(serverSSL, encryptedBuf, randNum);
+    if(read < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("Encrypted: \n%s\n", encryptedBuf);
+
+    /* decrypt the challenge */
+    unsigned char decrypted[2048] = {};
+    int pad = RSA_NO_PADDING;
+    RSA *privrsa = setUpRSA(private, 0);
+    int privDecrypt = RSA_private_decrypt(strlen(encryptedBuf), encryptedBuf, decrypted, privrsa, pad);
+    if(privDecrypt < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("Decrypted: \n%s\n", decrypted);
+
     /* read from client */
+    /*
     char options[100];
     bzero(options, 100);
     int read = SSL_read(serverSSL, options, 100);
@@ -113,21 +134,18 @@ int main(int argc, char **argv) {
         ERR_print_errors_fp(stderr);
     }
     printf("%s\n", options);
+    */
 
-    /* read from client */
-    bzero(options, 100);
-    read = SSL_read(serverSSL, options, 100);
-    if(read < 0) {
-        ERR_print_errors_fp(stderr);
+    /* send and receive check */
+    /*
+    char *s = "send";
+    char *r = "receive";
+    if(!strcmp(options, s)) {
+        printf("I am receiving.\n");
+    } else if(!strcmp(options, r)) {
+        printf("I am sending.\n");
     }
-    printf("%s\n", options);
-
-    /* write to client */
-    int write = SSL_write(serverSSL, options, strlen(options));
-    if(write < 0) {
-        ERR_print_errors_fp(stderr);
-    }
-    printf("%s\n", options);
+    */
 
     /* shutdown ssl and free bio */
     SSL_shutdown(serverSSL);
