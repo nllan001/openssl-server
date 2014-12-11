@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     OpenSSL_add_all_algorithms();
 
     /* set up the context */
-    SSL_CTX *serverCTX = SSL_CTX_new(SSLv23_server_method());
+    SSL_CTX *serverCTX = SSL_CTX_new(TLSv1_1_server_method());
     if(!serverCTX) {
         printf("Failed to create SSL CTX\n");
         return -1;
@@ -91,7 +91,6 @@ int main(int argc, char **argv) {
     /* set up the read and write bios and blocking status */
     BIO *bio = BIO_new(BIO_s_accept());;
     BIO_set_accept_port(bio, portNum);
-    //bio = BIO_new_accept(portNum);
 
     /* connect the bios */
     int acc;
@@ -105,8 +104,6 @@ int main(int argc, char **argv) {
     SSL_set_bio(serverSSL, bio, bio);
     /* accept connections */
     int accept = SSL_accept(serverSSL);
-    //SSL_set_accept_state(serverSSL);
-    //int handshake = SSL_do_handshake(serverSSL);
 
     /* read from client */
     char options[100];
@@ -117,9 +114,22 @@ int main(int argc, char **argv) {
     }
     printf("%s\n", options);
 
+    /* read from client */
+    bzero(options, 100);
+    read = SSL_read(serverSSL, options, 100);
+    if(read < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("%s\n", options);
+
+    /* write to client */
+    int write = SSL_write(serverSSL, options, strlen(options));
+    if(write < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("%s\n", options);
+
     /* shutdown ssl and free bio */
-    BIO_free(bio);
     SSL_shutdown(serverSSL);
     return 0;
 }
-

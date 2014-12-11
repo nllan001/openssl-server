@@ -42,13 +42,12 @@ int main(int argc, char **argv) {
 
     char *hostName = argv[1];
     char *portNum = argv[2];
-    char *option = argv[3];
+    char *option = argv[3] + 2;
     char *fileName = argv[4];
     int pad = RSA_PKCS1_PADDING;
 
     hostName = strcpy(hostName, strchr(hostName, '=') + 1);
     portNum = strcpy(portNum, strchr(portNum, '=') + 1);
-    option = strcpy(option, strchr(option, '-') + 2);
 
     /* read in public key */
     char *public;
@@ -89,7 +88,7 @@ int main(int argc, char **argv) {
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
 
-    SSL_CTX *clientCTX = SSL_CTX_new(SSLv23_client_method());
+    SSL_CTX *clientCTX = SSL_CTX_new(TLSv1_1_client_method());
     if(!clientCTX) {
         printf("Failed to create SSL CTX\n");
         return -1;
@@ -107,7 +106,6 @@ int main(int argc, char **argv) {
 
     /* set up the read and write bios */
     BIO *bio = BIO_new(BIO_s_connect());
-    //bio = BIO_new_connect(hostName);
     BIO_set_conn_hostname(bio, hostName);
     BIO_set_conn_port(bio, portNum);
 
@@ -122,16 +120,29 @@ int main(int argc, char **argv) {
     /* start connections */
     int connect = SSL_connect(clientSSL);
 
-    //SSL_set_connect_state(clientSSL);
-    //int handshake = SSL_do_handshake(clientSSL);
-   
     /* write to server */
     int write = SSL_write(clientSSL, option, strlen(option));
     if(write < 0) {
         ERR_print_errors_fp(stderr);
     }
+    printf("%s\n", option);
 
-    BIO_free(bio);
+    /* write to server */
+    write = SSL_write(clientSSL, option, strlen(option));
+    if(write < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("%s\n", option);
+
+    /* read from server */
+    char buf2[100];
+    bzero(buf2, 100);
+    int read = SSL_read(clientSSL, buf2, 100);
+    if(read < 0) {
+        ERR_print_errors_fp(stderr);
+    }
+    printf("%s\n", buf2);
+
     SSL_shutdown(clientSSL);
     return 0;
 }
