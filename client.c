@@ -171,10 +171,13 @@ int main(int argc, char **argv) {
     RSA *pubrsa = setUpRSA(public, 1);
     int pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
     while(pubEncrypt < 0) {
-        //ERR_print_errors_fp(stderr);
+        RAND_bytes(randBuf, randNum);
+        hash = SHA1(randBuf, randNum, shaBuf);
         bzero(encrypted, 2048);
         pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
     }
+    encrypted[RSA_size(pubrsa)] = '\0';
+    printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(pubrsa));
 
     /* initialize ssl */
     SSL_library_init();
