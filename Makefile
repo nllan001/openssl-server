@@ -3,7 +3,7 @@ HOST = localhost
 all: client server
 
 runc: client
-	./client --serverAddress=$(HOST) --port=$(PORT) --send ./send.txt
+	./client --serverAddress=$(HOST) --port=$(PORT) --receive ./send.txt
 
 runs: server
 	./server --port=$(PORT)
@@ -13,6 +13,10 @@ client: client.c
 
 server: server.c
 	gcc server.c -o server -lssl -lcrypto -ldl
+
+setup:
+	mkdir clientFiles
+	mkdir serverFiles
 
 clean:
 	rm server client
