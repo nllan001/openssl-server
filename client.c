@@ -49,7 +49,6 @@ void send(SSL *clientSSL, unsigned char *fileName) {
         return;
     }
     fileBuf[fileLength] = '\0';
-    printf("Sent: %s\n", fileBuf);
 
     /* clean the file name of directory paths and write it to server */
     fileName = strrchr(fileName, '/') + 1;
@@ -69,6 +68,7 @@ void send(SSL *clientSSL, unsigned char *fileName) {
         fileBuf += writeLength > chunkSize ? chunkSize : writeLength;
         writeLength -= chunkSize;
     }
+    fclose(file);
 }
 
 /* receives file from server */
@@ -84,8 +84,6 @@ void receive(SSL *clientSSL, unsigned char *fileName) {
     char directory[32] = "./clientFiles/";
     fileName = strrchr(fileName, '/') + 1;
     strcat(directory, fileName);
-    printf("%s\n", directory);
-    FILE *file = fopen(directory, "wb");
 
     /* read in the file contents from the socket */
     int chunkSize = 256, limit = 4096;
@@ -99,9 +97,23 @@ void receive(SSL *clientSSL, unsigned char *fileName) {
         fileRead = SSL_read(clientSSL, chunk, chunkSize);
     }
     content[strlen(content)] = '\0';
-    printf("Received: %s\n", content);
 
     /* write to file */
+    FILE *file = fopen(directory, "wb");
+    if(file) {
+        fseek(file, 0, SEEK_SET);
+        if(content) {
+            fwrite(content, 1, strlen(content), file);
+        } else {
+            printf("Error writing file.\n");
+            return;
+        }
+    } else {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    fclose(file);
 }
 
 int main(int argc, char **argv) {
