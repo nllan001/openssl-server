@@ -62,9 +62,19 @@ void send(SSL *serverSSL) {
         return;
     }
     fileBuf[fileLength] = '\0';
-    printf("%s\n", fileBuf);
+    printf("Sent: %s\n", fileBuf);
 
     /* send over the fileBuf */
+    int chunkSize = 256;
+    int writeLength = strlen(fileBuf);
+    int fileWrite = SSL_write(serverSSL, fileBuf, chunkSize);
+    fileBuf += writeLength > chunkSize ? chunkSize : writeLength;
+    writeLength -= chunkSize;
+    while(fileWrite > 0 && writeLength > 0) {
+        fileWrite = SSL_write(serverSSL, fileBuf, chunkSize);
+        fileBuf += writeLength > chunkSize ? chunkSize : writeLength;
+        writeLength -= chunkSize;
+    }
 }
 
 /* receives file from client */
@@ -90,15 +100,16 @@ void receive(SSL *serverSSL) {
     char chunk[chunkSize];
     char content[limit];
     int fileRead = SSL_read(serverSSL, chunk, chunkSize);
-    strcat(content, chunk);
-    limit -= chunkSize;
-    while(fileRead > 0 && limit >= 0) {
-        fileRead = SSL_read(serverSSL, content, chunkSize);
+    while(fileRead > 0 && limit > 0) {
+        chunk[chunkSize] = '\0';
         strcat(content, chunk);
         limit -= chunkSize;
+        fileRead = SSL_read(serverSSL, chunk, chunkSize);
     }
-    content[fileRead] = '\0';
-    printf("%s\n", content);
+    content[strlen(content)] = '\0';
+    printf("Received: %s\n", content);
+    
+    /* write to file */
 }
 
 int main(int argc, char **argv) {
