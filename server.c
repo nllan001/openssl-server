@@ -227,18 +227,16 @@ int main(int argc, char **argv) {
     bzero(shaBuf, hashSize);
     unsigned char *hash = SHA1(decrypted, dLength, shaBuf);
     shaBuf[hashSize] = '\0';
-    //		printf("Hash: %s\n", shaBuf);
 
     /* encrypt the hashed message */
     unsigned char encrypted[2048] = {};
     pad = RSA_PKCS1_PADDING;
     int privEncrypt = RSA_private_encrypt(hashSize, shaBuf, encrypted, privrsa, pad);
+    //printf("length: %d, size: %d\n", strlen(shaBuf), RSA_size(privrsa));
     if(privEncrypt < 0) {
         ERR_print_errors_fp(stderr);
     }
-    printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
-
-    //printf("encrypted: %s\n", encrypted);
+    //printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
 
     /* write to client */
     int write = SSL_write(serverSSL, encrypted, 2048);

@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
         pubEncrypt = RSA_public_encrypt(randNum, randBuf, encrypted, pubrsa, pad);
     }
     encrypted[RSA_size(pubrsa)] = '\0';
-    printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(pubrsa));
+    //printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(pubrsa));
 
     /* initialize ssl */
     SSL_library_init();
@@ -234,10 +234,15 @@ int main(int argc, char **argv) {
     /* decrypt response */
     pad = RSA_PKCS1_PADDING;
     unsigned char decryptedHash[20];
-    //printf("length: %d, size: %d\n", strlen(encryptedHash), RSA_size(pubrsa));
     int pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
+    //printf("length: %d, size: %d\n", strlen(encryptedHash), RSA_size(pubrsa));
     while(pubDecrypt < 0) {
-        //ERR_print_errors_fp(stderr);
+        if(strlen(encryptedHash) < RSA_size(pubrsa)) {
+            printf("Problem with encrypted value. Please retry connection.\n");
+            SSL_shutdown(clientSSL);
+            return 0;
+        }
+        bzero(decryptedHash, 20);
         pubDecrypt = RSA_public_decrypt(strlen(encryptedHash), encryptedHash, decryptedHash, pubrsa, pad);
     }
 
