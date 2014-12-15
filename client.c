@@ -9,21 +9,21 @@
 #include "openssl/bio.h"
 #include "openssl/pem.h"
 
+/* creates the rsa using the provided key */
 RSA *setUpRSA(unsigned char *key, int public) {
-    RSA *rsa = NULL;
+    /* set up a bio for the rsa */
     BIO *bio;
     if(!(bio = BIO_new_mem_buf(key, -1))) {
         printf("Error setting up bio\n");
         return NULL;
     }
-    if(public) {
-        rsa = PEM_read_bio_RSA_PUBKEY(bio, &rsa, NULL, NULL);
-    } else {
-        rsa = PEM_read_bio_RSAPrivateKey(bio, &rsa, NULL, NULL);
-    }
-    if(!rsa) {
-        printf("Error setting up rsa\n");
-    }
+
+    /* set up the rsa depending on whether or not it is the public key */
+    RSA *rsa = NULL;
+    rsa = public ?
+        PEM_read_bio_RSA_PUBKEY(bio, &rsa, NULL, NULL) :
+        PEM_read_bio_RSAPrivateKey(bio, &rsa, NULL, NULL);
+
     return rsa;
 }
 

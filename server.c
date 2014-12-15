@@ -11,22 +11,21 @@
 
 #define RAND_NUM 1024
 
+/* creates the rsa using the provided key */
 RSA *setUpRSA(unsigned char *key, int public) {
-    RSA *rsa = NULL;
+    /* set up a bio for the rsa */
     BIO *bio;
     if(!(bio = BIO_new_mem_buf(key, -1))) {
         printf("Error setting up bio\n");
         return NULL;
     }
-    if(public) {
-        rsa = PEM_read_bio_RSA_PUBKEY(bio, &rsa, NULL, NULL);
-    } else {
-        rsa = PEM_read_bio_RSAPrivateKey(bio, &rsa, NULL, NULL);
-    }
-    if(!rsa) {
-        printf("Error setting up rsa\n");
-    }
-    BIO_free(bio);
+
+    /* set up the rsa depending on whether or not it is the public key */
+    RSA *rsa = NULL;
+    rsa = public ? 
+        PEM_read_bio_RSA_PUBKEY(bio, &rsa, NULL, NULL) :
+        PEM_read_bio_RSAPrivateKey(bio, &rsa, NULL, NULL);
+
     return rsa;
 }
 
@@ -197,6 +196,7 @@ int main(int argc, char **argv) {
 
     /* set the ssl to use the new bios */
     SSL_set_bio(serverSSL, bio, bio);
+
     /* accept connections */
     int accept = SSL_accept(serverSSL);
 
@@ -208,7 +208,6 @@ int main(int argc, char **argv) {
     if(read < 0) {
         ERR_print_errors_fp(stderr);
     }
-    //printf("Encrypted: \n%s\n", encryptedBuf);
 
     /* decrypt the challenge */
     int dLength = 128;
@@ -232,11 +231,9 @@ int main(int argc, char **argv) {
     unsigned char encrypted[2048] = {};
     pad = RSA_PKCS1_PADDING;
     int privEncrypt = RSA_private_encrypt(hashSize, shaBuf, encrypted, privrsa, pad);
-    //printf("length: %d, size: %d\n", strlen(shaBuf), RSA_size(privrsa));
     if(privEncrypt < 0) {
         ERR_print_errors_fp(stderr);
     }
-    //printf("length: %d, size: %d\n", strlen(encrypted), RSA_size(privrsa));
 
     /* write to client */
     int write = SSL_write(serverSSL, encrypted, 2048);
