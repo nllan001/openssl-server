@@ -1,5 +1,6 @@
-PORT = 20194
-HOST = localhost
+PORT = 20193
+#HOST = localhost
+HOST = 169.235.30.192
 all: client server
 
 runc: client
